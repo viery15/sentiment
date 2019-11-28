@@ -49,129 +49,133 @@ class Sentiment extends CI_Controller {
         $kalimat = $this->cekKataBaku($kalimat);
 
         // print_r($kalimat);
-        $this->sentimentProcess();
+        $this->sentimentProcess($kalimat);
         
     }
 
-    public function sentimentProcess(){
-        $sentence = "tempat wisata alami indah dengan sumber yang jernih dan rumput bawah air tak kalah dengan indah dan juga pas buat foto atau sini";
-        $sentence = explode(" ", $sentence);
-        $i = 0;
-        $wordList = [];
-        $result = [];
-        $score = [];
-        foreach($sentence as $word){
-            $wordList[$i] = $this->getSentimentalWords($word);
-            $i++;
-        }
+    public function sentimentProcess($kalimat){
 
-        for($i = 0; $i < count($wordList); $i++)
-        {
-            //cek verba
-            if($this->checkVerb($wordList[$i]))
+        for ($j=0; $j < count($kalimat); $j++) { 
+                
+            $sentence = $kalimat[$j];
+            $sentence = explode(" ", $sentence);
+            $i = 0;
+            $wordList = [];
+            $result = [];
+            $score = [];
+            foreach($sentence as $word){
+                $wordList[$i] = $this->getSentimentalWords($word);
+                $i++;
+            }
+
+            for($i = 0; $i < count($wordList); $i++)
             {
-                //cek ada keterangan sebelum verba
-                if($i != 0 && $i != count($wordList)-1) // jika tidak di awal kalimat
+                //cek verba
+                if($this->checkVerb($wordList[$i]))
                 {
-                    if($this->checkAdverb($wordList[$i-1]))
+                    //cek ada keterangan sebelum verba
+                    if($i != 0 && $i != count($wordList)-1) // jika tidak di awal kalimat
                     {
-                        error_reporting(0);
+                        if($this->checkAdverb($wordList[$i-1]))
+                        {
+                            error_reporting(0);
+                            if($this->checkAdjective($wordList[$i+1]))
+                            {
+                                $verb_adj = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
+                                $score[$i] = $this->countLogic($this->getValue($wordList[$i-1]), $verb_adj, 'before');
+                                $i++;
+                            }
+                            else
+                            {
+                                $score[$i] = $this->countLogic($this->getValue($wordList[$i-1]), $this->getValue($wordList[$i]), 'before');
+                            }
+                        }
+                        elseif($this->checkAdjective($wordList[$i+1]))
+                        {
+                            $score[$i] = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
+                            $i++;
+                        }
+                        else
+                        {
+                            $score[$i] = $this->getValue($wordList[$i]);
+                        }
+                    }
+
+                    //cek ada adjektiva sesudah verba
+                    elseif($i != count($wordList)-1) //jika tidak diakhir kalimat
+                    {
                         if($this->checkAdjective($wordList[$i+1]))
                         {
-                            $verb_adj = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
-                            $score[$i] = $this->countLogic($this->getValue($wordList[$i-1]), $verb_adj, 'before');
+                            echo 'masuk';
+                            $score[$i] = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
                             $i++;
                         }
                         else
                         {
-                            $score[$i] = $this->countLogic($this->getValue($wordList[$i-1]), $this->getValue($wordList[$i]), 'before');
+                            $score[$i] = $this->getValue($wordList[$i]);
                         }
                     }
-                    elseif($this->checkAdjective($wordList[$i+1]))
-                    {
-                        $score[$i] = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
-                        $i++;
-                    }
                     else
                     {
                         $score[$i] = $this->getValue($wordList[$i]);
                     }
                 }
 
-                //cek ada adjektiva sesudah verba
-                elseif($i != count($wordList)-1) //jika tidak diakhir kalimat
+                //cek adjektiva
+                elseif($this->checkAdjective($wordList[$i]))
                 {
-                    if($this->checkAdjective($wordList[$i+1]))
+                    //cek ada keterangan sebelum adjektiva
+                    if($i != 0) // jika tidak di awal kalimat
                     {
-                        echo 'masuk';
-                        $score[$i] = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
-                        $i++;
+                        if($this->checkAdverb($wordList[$i-1]))
+                        {
+                            error_reporting(0);
+                            if($this->checkVerb($wordList[$i+1]))
+                            {
+                                $pre_adj = $this->countLogic($this->getValue($wordList[$i-1]) , $this->getValue($wordList[$i]), 'after');
+                                $score[$i] = $this->countLogic(intval($pre_adj), $this->getValue($wordList[$i+1]), 'before');
+                                $i++;
+                            }
+                            else
+                            {
+                                $score[$i] = $this->countLogic($this->getValue($wordList[$i-1]), $this->getValue($wordList[$i]), 'before');
+                            }
+                        }
+                        else
+                        {
+                            $score[$i] = $this->getValue($wordList[$i]);
+                        }   
                     }
-                    else
+                    //cek ada verba sesudah adjektiva
+                    elseif($i != count($wordList)-1) //jika tidak di akhir kalimat
                     {
-                        $score[$i] = $this->getValue($wordList[$i]);
-                    }
-                }
-                else
-                {
-                    $score[$i] = $this->getValue($wordList[$i]);
-                }
-            }
-
-            //cek adjektiva
-            elseif($this->checkAdjective($wordList[$i]))
-            {
-                //cek ada keterangan sebelum adjektiva
-                if($i != 0) // jika tidak di awal kalimat
-                {
-                    if($this->checkAdverb($wordList[$i-1]))
-                    {
-                        error_reporting(0);
                         if($this->checkVerb($wordList[$i+1]))
                         {
-                            $pre_adj = $this->countLogic($this->getValue($wordList[$i-1]) , $this->getValue($wordList[$i]), 'after');
-                            $score[$i] = $this->countLogic(intval($pre_adj), $this->getValue($wordList[$i+1]), 'before');
+                            $score[$i] = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
                             $i++;
                         }
                         else
                         {
-                            $score[$i] = $this->countLogic($this->getValue($wordList[$i-1]), $this->getValue($wordList[$i]), 'before');
+                            $score[$i] = $this->getValue($wordList[$i]);
                         }
                     }
                     else
                     {
                         $score[$i] = $this->getValue($wordList[$i]);
-                    }   
-                }
-                //cek ada verba sesudah adjektiva
-                elseif($i != count($wordList)-1) //jika tidak di akhir kalimat
-                {
-                    if($this->checkVerb($wordList[$i+1]))
-                    {
-                        $score[$i] = $this->countLogic($this->getValue($wordList[$i]), $this->getValue($wordList[$i+1]), 'after');
-                        $i++;
-                    }
-                    else
-                    {
-                        $score[$i] = $this->getValue($wordList[$i]);
                     }
                 }
-                else
+
+                elseif($this->getValue($wordList[$i]) != 0 && !$this->checkAdverb($wordList[$i]))
                 {
                     $score[$i] = $this->getValue($wordList[$i]);
                 }
             }
-
-            elseif($this->getValue($wordList[$i]) != 0 && !$this->checkAdverb($wordList[$i]))
-            {
-                $score[$i] = $this->getValue($wordList[$i]);
-            }
+            $result[$j]['wordlist'] = $wordList;
+            $result[$j]['scorelist'] = $this->reconstructArray($score);
+            $result[$j]['score'] = array_sum($score);
+            print_r($result);
+            // return $result;
         }
-        $result['wordlist'] = $wordList;
-        $result['scorelist'] = $this->reconstructArray($score);
-        $result['score'] = array_sum($score);
-        print_r($result);
-        // return $result;
     }
 
     public function reconstructArray($array){
