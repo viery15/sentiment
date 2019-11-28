@@ -35,7 +35,7 @@ class Sentiment extends CI_Controller {
             "Kalo sebagai warga sekitar sih tempat ini B aja, ada banyak sumber2 didaerah sini. Tapi lumayan lah ya bisa melepas penat disini denganhamparan sawah dan air ygmemang langsung dr alam, gk ada kaporit atau bahan kimia lainnya",
             "Pemandangan menakjubkan, masih sangat asri dengan pedesaannya, sawah membentang luas dengan aliran sungainya yang bersih.\nIdeal sekali untuk refreshing dari kebisingan kota.\nAda sumber alam yang bisa dipakai untuk berenang atau foto underwater, karena tanaman dan lumut di dasar sumber yang indah",
             "Sumber yang sangat bersih dan jernih jauh dari keramaian tempat di tengah sawah, Gratis tinggal parkir dan sewa ban dan kabinet bayar, ada beberapa warung kopi ...cocok untuk liburan murah",
-            "Airnyaa jernih bgt . Cocok buat yg pngen renang santai. ",
+            "Airnya jernih bgt . Cocok buat yg pngen renang santai. ",
         ];
         // print_r($kalimat);
 
@@ -47,14 +47,15 @@ class Sentiment extends CI_Controller {
         $kalimat = $this->removeNumber($kalimat);
         $kalimat = $this->removeStopWord($kalimat);
         $kalimat = $this->cekKataBaku($kalimat);
-
-        // print_r($kalimat);
         $this->sentimentProcess($kalimat);
+
+        // echo json_encode($result);
+        // print_r($result);
         
     }
 
     public function sentimentProcess($kalimat){
-
+        
         for ($j=0; $j < count($kalimat); $j++) { 
                 
             $sentence = $kalimat[$j];
@@ -173,9 +174,11 @@ class Sentiment extends CI_Controller {
             $result[$j]['wordlist'] = $wordList;
             $result[$j]['scorelist'] = $this->reconstructArray($score);
             $result[$j]['score'] = array_sum($score);
-            print_r($result);
-            // return $result;
+
         }
+        
+        print_r($result);
+
     }
 
     public function reconstructArray($array){
